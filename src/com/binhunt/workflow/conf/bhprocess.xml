@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans SYSTEM "http://www.springframework.org/dtd/spring-beans.dtd">
+<!-- ==========================================================================
+*     SPRING BEAN DEFINITION FILE
+*     Javaworld Article - Airline Sequence Workflow Example
+  ========================================================================== -->
+<beans>
+	
+	<bean id="log4jconfig"
+		class="com.binhunt.workflow.utils.Log4jConfig">
+		<property name="configXml">
+			<value>com/binhunt/workflow/conf/log4j.xml</value>
+		</property>
+	</bean>
+	
+	<!-- step_1 fetch job from database -->
+	<bean id="fetchjob" 
+		class="com.binhunt.workflow.serv.FetchJob">
+		<property name="tempdir"><value>/home/user/binhunt-website/webwork/bhworkflow/tempdir</value></property>
+	</bean>
+	
+	<!-- step_2 call windows pre-process -->
+	<bean id="preprocess" 
+		class="com.binhunt.workflow.serv.PreProcess"/>
+	
+	<!-- step_3 query instance and initializations-->
+	<bean id="initialize" 
+		class="com.binhunt.workflow.serv.Initialization">
+		<property name="timeoutcnt"><value>60</value></property>
+	</bean>
+	
+	<!-- step_4 call binhunt main process -->
+	<bean id="binhuntprocess" 
+		class="com.binhunt.workflow.serv.BinHuntProcess">
+		<property name="tempdir"><value>/home/user/binhunt-website/webwork/bhworkflow/tempdir</value></property>
+		<property name="clouddir"><value>/home/user/bitblaze/vine/web/malware</value></property>
+		<property name="clouduser"><value>user</value></property>
+		<!-- 0: not remove tempdir -->
+		<!-- 1: remove tempdir -->
+		<property name="rmtempdir"><value>0</value></property>
+		<!-- 1: only output function mapping for all user, fast and small in size  -->
+		<!-- 2: only function mapping for other users, but additional basic block info for partners and smu-->
+		<!-- 3: function mapping for others, full info for partners and smu(will be very big, not suggested) -->
+		<property name="level"><value>1</value></property>
+	</bean>	
+
+	<!-- step_5 terminate instance-->
+	<bean id="terminate" 
+		class="com.binhunt.workflow.serv.Terminate">
+	</bean>
+	
+	<!-- step_6 send notification email and update database -->
+	<bean id="notification" 
+		class="com.binhunt.workflow.serv.Notification">	
+<property name="mailhost"><value>smtp.smu.edu.sg</value></property>
+		<property name="username"><value>user</value></property>
+		<property name="password"><value>pass</value></property>
+		<property name="mailfrom"><value>user@flyer.sis.smu.edu.sg</value></property>
+		<property name="mailsubject"><value>BinHunt Website Notification</value></property>	
+		<property name="personalName"><value>binhunt</value></property>
+		<property name="body"><value>Your job submitted to our website has been done. Please come back to check the results.</value></property>
+	</bean>
+	
+
+	<bean id="defaultErrorHandler" 
+		class="com.binhunt.workflow.impl.BHErrorHandler"/>
+
+	<bean id="processContext"
+		class="com.binhunt.workflow.impl.BHProcessContext" singleton="false"/>	
+		
+		
+	<!-- simple sequence workflow process -->
+	<bean id="bhProcessor" class="com.binhunt.workflow.impl.SequenceProcessor" >
+		<property name="activities">
+			<list>
+				<ref bean="fetchjob"/><!--fetch job-->
+				<ref bean="preprocess"/><!--windows preprocess-->
+				<ref bean="initialize"/><!--get euca instance-->
+				<ref bean="binhuntprocess"/><!--call binhunt-->
+				<ref bean="terminate"/><!--terminate instance-->
+				<ref bean="notification"/><!--send message-->
+			</list>
+		</property>
+		<property name="defaultErrorHandler">
+			<ref bean="defaultErrorHandler"></ref>
+		</property>
+		<property name="processContextClass">
+			<value>com.binhunt.workflow.impl.BHProcessContext</value>
+		</property>
+	</bean>
+
+	
+</beans>
